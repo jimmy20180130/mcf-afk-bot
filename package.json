@@ -1,0 +1,22 @@
+{
+    "name": "mcf-afk-bot",
+    "main": "main.js",
+    "bin": {
+        "mcf-afk": "./start.js"
+    },
+    "dependencies": {
+        "minecraft-data": "^3.48.0",
+        "minecraft-protocol": "^1.44.0",
+        "mineflayer": "^4.17.0",
+        "prismarine-entity": "^2.3.1"
+    },
+    "pkg": {
+        "scripts": [
+            "./start.js"
+        ],
+        "assets": [
+            "./main.js",
+            "./start.js"
+        ]
+    }
+}
