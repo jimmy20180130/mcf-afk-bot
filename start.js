@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { fork } = require('child_process');
 const readline = require('readline')
 
 let appProcess = undefined;
@@ -15,7 +15,7 @@ rl.on('line', async function (line) {
 });
 
 function startApp() {
-    appProcess = spawn('node', ['main.js']);
+    appProcess = fork(__dirname + '/main.js', [], { silent: true })
 
     appProcess.stdout.on('data', (data) => {
         console.log(`${String(data).replaceAll('\n', '')}`);
@@ -24,6 +24,10 @@ function startApp() {
     appProcess.stderr.on('data', (data) => {
         console.error(`[ERROR] 發現以下錯誤 ${data} ，正在重新開啟中...`);
     });
+
+    appProcess.on('error', (err) => {
+        console.log(`[ERROR] ${err}`)
+    })
 
     appProcess.on('close', (code) => {
         console.log(`[ERROR] 程式回傳錯誤碼 ${code} ，正在重新啟動中...`);
