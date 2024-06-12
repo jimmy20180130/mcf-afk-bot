@@ -17,7 +17,8 @@ const botArgs = {
     port: config.bot_args.port,
     username: config.bot_args.username,
     version: config.bot_args.version,
-    auth: config.bot_args.auth
+    auth: config.bot_args.auth,
+    physicsEnabled: true
 };
 
 const initBot = () => {
@@ -84,6 +85,13 @@ const initBot = () => {
         console.log(jsonMsg.toAnsi());
     });
 
+    bot.on('physicsTick', () => {
+        for (const entity of Object.values(bot.entities)) {
+            if (entity === bot.entity) { continue }
+            applyEntityCollision(entity)
+        }
+    })
+
     bot.on("end", () => {
         console.log(`機器人已斷線，將於 5 秒後重啟`);
         for (listener of rl.listeners('line')) {
@@ -124,6 +132,30 @@ const initBot = () => {
             console.log(`吃東西時發生錯誤: ${error.message}`)
         }
     })
+
+    function applyEntityCollision(other) {
+        let dx = other.position.x - bot.entity.position.x;
+        let dy = other.position.y - bot.entity.position.y;
+        let dz = other.position.z - bot.entity.position.z;
+        let largestDistance = Math.max(Math.abs(dx), Math.abs(dz));
+        if (largestDistance >= 0.01) {
+            let vx = dx / 20;
+            let vz = dz / 20;
+
+            if (largestDistance < 1) {
+                vx /= Math.sqrt(largestDistance)
+                vz /= Math.sqrt(largestDistance)
+            } else {
+                vx /= largestDistance
+                vz /= largestDistance
+            }
+            bot.entity.xVelocity -= vx;
+            bot.entity.xVelocity -= vz;
+
+            other.xVelocity += vx;
+            other.zVelocity += vz;
+        }
+    }
 };
 
 initBot();
