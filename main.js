@@ -1,9 +1,10 @@
 const mineflayer = require("mineflayer");
 const readline = require("readline");
-const autoeat = require('mineflayer-auto-eat').plugin
+const autoeat = require("mineflayer-auto-eat").plugin;
 const fs = require("fs");
+const Vec3 = require("vec3");
 
-let config = JSON.parse(fs.readFileSync("config.json"), 'utf8');
+let config = JSON.parse(fs.readFileSync("config.json"), "utf8");
 
 let bot;
 
@@ -18,12 +19,13 @@ const botArgs = {
     username: config.bot_args.username,
     version: config.bot_args.version,
     auth: config.bot_args.auth,
-    physicsEnabled: true
+    physicsEnabled: true,
 };
 
 const initBot = () => {
     bot = mineflayer.createBot(botArgs);
-    bot.loadPlugin(autoeat)
+    bot.loadPlugin(autoeat);
+    bot.loadPlugin(pathfinder)
 
     let trade_and_lottery;
     let facility;
@@ -31,23 +33,36 @@ const initBot = () => {
 
     const ad = () => {
         trade_and_lottery = setInterval(function () {
-            config = JSON.parse(fs.readFileSync(`${process.cwd()}/config.json`, 'utf8'))
+            config = JSON.parse(
+                fs.readFileSync(`${process.cwd()}/config.json`, "utf8")
+            );
             try {
-                if (config.trade_text && config.trade_text !== '') bot.chat(`$${config.trade_text}`)
-                if (config.lottery_text && config.lottery_text !== '') bot.chat(`%${config.lottery_text}`)
-            } catch {}
-        }, 605000)
+                if (config.trade_text && config.trade_text !== "")
+                    bot.chat(`$${config.trade_text}`);
+                if (config.lottery_text && config.lottery_text !== "")
+                    bot.chat(`%${config.lottery_text}`);
+            } catch { }
+        }, 605000);
 
         facility = setInterval(function () {
-            config = JSON.parse(fs.readFileSync(`${process.cwd()}/config.json`, 'utf8'))
-            try { if (config.facility_text && config.facility_text !== '') bot.chat(`!${config.facility_text}`) } catch {}
-        }, 1805000)
+            config = JSON.parse(
+                fs.readFileSync(`${process.cwd()}/config.json`, "utf8")
+            );
+            try {
+                if (config.facility_text && config.facility_text !== "")
+                    bot.chat(`!${config.facility_text}`);
+            } catch { }
+        }, 1805000);
 
         auto_warp = setInterval(function () {
-            config = JSON.parse(fs.readFileSync(`${process.cwd()}/config.json`, 'utf8'))
-            try { bot.chat(config.warp) } catch {}
-        }, 600000)
-    }
+            config = JSON.parse(
+                fs.readFileSync(`${process.cwd()}/config.json`, "utf8")
+            );
+            try {
+                bot.chat(config.warp);
+            } catch { }
+        }, 600000);
+    };
 
     bot.once("login", () => {
         let botSocket = bot._client.socket;
@@ -57,49 +72,56 @@ const initBot = () => {
     });
 
     bot.once("spawn", () => {
-        bot.chat('bot is online')
+        bot.chat("bot is online");
         console.log(`地圖已載入`);
 
         try {
-            if (config.trade_text && config.trade_text !== '') bot.chat(`$${config.trade_text}`)
-            if (config.lottery_text && config.lottery_text !== '') bot.chat(`%${config.lottery_text}`)
-            if (config.facility_text && config.facility_text !== '') bot.chat(`!${config.facility_text}`)
-        } catch {}
+            if (config.trade_text && config.trade_text !== "")
+                bot.chat(`$${config.trade_text}`);
+            if (config.lottery_text && config.lottery_text !== "")
+                bot.chat(`%${config.lottery_text}`);
+            if (config.facility_text && config.facility_text !== "")
+                bot.chat(`!${config.facility_text}`);
+        } catch { }
 
         setTimeout(() => {
-            ad()
+            ad();
         }, 5000);
 
         rl.on("line", function (line) {
-            bot.chat(line)
+            bot.chat(line);
         });
+
+        setInterval(water_movement, 2500);
     });
 
     bot.on("message", (jsonMsg) => {
         var regex = /Summoned to server(\d+) by CONSOLE/;
         if (regex.exec(jsonMsg.toString())) {
-            bot.chat(config.server)
-            bot.chat(config.warp)
+            bot.chat(config.server);
+            bot.chat(config.warp);
         }
 
         console.log(jsonMsg.toAnsi());
     });
 
-    bot.on('physicsTick', () => {
+    bot.on("physicsTick", () => {
         for (const entity of Object.values(bot.entities)) {
-            if (entity === bot.entity) { continue }
-            applyEntityCollision(entity)
+            if (entity === bot.entity) {
+                continue;
+            }
+            applyEntityCollision(entity);
         }
-    })
+    });
 
     bot.on("end", () => {
         console.log(`機器人已斷線，將於 5 秒後重啟`);
-        for (listener of rl.listeners('line')) {
-            rl.removeListener('line', listener)
+        for (listener of rl.listeners("line")) {
+            rl.removeListener("line", listener);
         }
-        clearInterval(trade_and_lottery)
-        clearInterval(facility)
-        clearInterval(auto_warp)
+        clearInterval(trade_and_lottery);
+        clearInterval(facility);
+        clearInterval(auto_warp);
         setTimeout(initBot, 5000);
     });
 
@@ -117,21 +139,21 @@ const initBot = () => {
         process.exit(1);
     });
 
-    bot.on('autoeat_started', (item, offhand) => {
-        console.log(`正在吃 ${offhand ? '副手中' : '主手中'} 的 ${item.name}`)
-    })
-    
-    bot.on('autoeat_finished', (item, offhand) => {
-        console.log(`已吃完 ${offhand ? '副手中' : '主手中'} 的 ${item.name}`)
-    })
-    
-    bot.on('autoeat_error', error => {
-        if (error.message == 'No food found.') {
-            console.log('找不到食物')
+    bot.on("autoeat_started", (item, offhand) => {
+        console.log(`正在吃 ${offhand ? "副手中" : "主手中"} 的 ${item.name}`);
+    });
+
+    bot.on("autoeat_finished", (item, offhand) => {
+        console.log(`已吃完 ${offhand ? "副手中" : "主手中"} 的 ${item.name}`);
+    });
+
+    bot.on("autoeat_error", (error) => {
+        if (error.message == "No food found.") {
+            console.log("找不到食物");
         } else {
-            console.log(`吃東西時發生錯誤: ${error.message}`)
+            console.log(`吃東西時發生錯誤: ${error.message}`);
         }
-    })
+    });
 
     function applyEntityCollision(other) {
         let dx = other.position.x - bot.entity.position.x;
@@ -143,11 +165,11 @@ const initBot = () => {
             let vz = dz / 20;
 
             if (largestDistance < 1) {
-                vx /= Math.sqrt(largestDistance)
-                vz /= Math.sqrt(largestDistance)
+                vx /= Math.sqrt(largestDistance);
+                vz /= Math.sqrt(largestDistance);
             } else {
-                vx /= largestDistance
-                vz /= largestDistance
+                vx /= largestDistance;
+                vz /= largestDistance;
             }
             bot.entity.xVelocity -= vx;
             bot.entity.xVelocity -= vz;
@@ -161,16 +183,16 @@ const initBot = () => {
 initBot();
 
 process.on("unhandledRejection", async (error) => {
-    console.log(error)
-    process.exit(1)
+    console.log(error);
+    process.exit(1);
 });
 
 process.on("uncaughtException", async (error) => {
-    console.log(error)
-    process.exit(1)
+    console.log(error);
+    process.exit(1);
 });
 
 process.on("uncaughtExceptionMonitor", async (error) => {
-    console.log(error)
-    process.exit(1)
+    console.log(error);
+    process.exit(1);
 });

@@ -10,5 +10,6 @@
     "warp": "/homes afk",
     "trade_text": "",
     "lottery_text": "",
-    "facility_text": ""
+    "facility_text": "",
+    "water": true
 }
