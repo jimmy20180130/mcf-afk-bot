@@ -1,3 +1,5 @@
 exe
 mcf-afk-bot.exe
 node_modules
+pathfinder.js
+test.js
