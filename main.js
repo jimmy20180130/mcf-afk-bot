@@ -25,7 +25,6 @@ const botArgs = {
 const initBot = () => {
     bot = mineflayer.createBot(botArgs);
     bot.loadPlugin(autoeat);
-    bot.loadPlugin(pathfinder)
 
     let trade_and_lottery;
     let facility;
