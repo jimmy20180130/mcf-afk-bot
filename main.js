@@ -90,8 +90,6 @@ const initBot = () => {
         rl.on("line", function (line) {
             bot.chat(line);
         });
-
-        setInterval(water_movement, 2500);
     });
 
     bot.on("message", (jsonMsg) => {
