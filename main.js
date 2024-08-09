@@ -2,9 +2,9 @@ const mineflayer = require("mineflayer");
 const readline = require("readline");
 const autoeat = require("mineflayer-auto-eat").plugin;
 const fs = require("fs");
-const Vec3 = require("vec3");
+const moment = require('moment-timezone');
 
-let config = JSON.parse(fs.readFileSync("config.json"), "utf8");
+let config = JSON.parse(fs.readFileSync(`${process.cwd()}/config.json`, 'utf8'))
 
 let bot;
 
@@ -13,12 +13,14 @@ let rl = readline.createInterface({
     output: process.stdout,
 });
 
+let intervals = [];
+
 const botArgs = {
     host: config.bot_args.host,
     port: config.bot_args.port,
     username: config.bot_args.username,
-    version: config.bot_args.version,
-    auth: config.bot_args.auth,
+    version: '1.20.1',
+    auth: 'microsoft',
     physicsEnabled: true,
 };
 
@@ -26,62 +28,40 @@ const initBot = () => {
     bot = mineflayer.createBot(botArgs);
     bot.loadPlugin(autoeat);
 
-    let trade_and_lottery;
-    let facility;
-    let auto_warp;
-
     const ad = () => {
-        trade_and_lottery = setInterval(function () {
-            config = JSON.parse(
-                fs.readFileSync(`${process.cwd()}/config.json`, "utf8")
-            );
-            try {
-                if (config.trade_text && config.trade_text !== "")
-                    bot.chat(`$${config.trade_text}`);
-                if (config.lottery_text && config.lottery_text !== "")
-                    bot.chat(`%${config.lottery_text}`);
-            } catch { }
-        }, 605000);
+        let config = JSON.parse(fs.readFileSync(`${process.cwd()}/config.json`, 'utf8'))
 
-        facility = setInterval(function () {
-            config = JSON.parse(
-                fs.readFileSync(`${process.cwd()}/config.json`, "utf8")
-            );
-            try {
-                if (config.facility_text && config.facility_text !== "")
-                    bot.chat(`!${config.facility_text}`);
-            } catch { }
-        }, 1805000);
-
-        auto_warp = setInterval(function () {
-            config = JSON.parse(
-                fs.readFileSync(`${process.cwd()}/config.json`, "utf8")
-            );
-            try {
-                bot.chat(config.warp);
-            } catch { }
-        }, 600000);
-    };
+        for (let item of config.advertisement) {
+            intervals.push(setInterval(async () => {
+                try {
+                    bot.chat(item.text)
+                    console.log(`[INFO] 發送廣告: ${item.text}`)
+                } catch (e) {
+                    console.log(`[ERROR] 發送廣告時發生錯誤: ${e}`)
+                }
+            }, item.interval))
+        }
+    }
 
     bot.once("login", () => {
         let botSocket = bot._client.socket;
         console.log(
-            `已成功登入 ${botSocket.server ? botSocket.server : botSocket._host}`
+            `[INFO] 已成功登入 ${botSocket.server ? botSocket.server : botSocket._host}`
         );
     });
 
     bot.once("spawn", () => {
-        bot.chat("bot is online");
-        console.log(`地圖已載入`);
+        bot.chat(`[${moment(new Date()).tz('Asia/Taipei').format('HH:mm:ss')}] Jimmy Bot 已上線!`);
+        console.log(`[INFO] 地圖已載入`);
+        let config = JSON.parse(fs.readFileSync(`${process.cwd()}/config.json`, 'utf8'))
 
         try {
-            if (config.trade_text && config.trade_text !== "")
-                bot.chat(`$${config.trade_text}`);
-            if (config.lottery_text && config.lottery_text !== "")
-                bot.chat(`%${config.lottery_text}`);
-            if (config.facility_text && config.facility_text !== "")
-                bot.chat(`!${config.facility_text}`);
-        } catch { }
+            for (let item of config.advertisement) {
+                if (item.text && item.interval) bot.chat(item.text);
+            }
+        } catch (e) {
+            console.log(`[ERROR] 發送廣告時發生錯誤: ${e}`)
+        }
 
         setTimeout(() => {
             ad();
@@ -116,9 +96,11 @@ const initBot = () => {
         for (listener of rl.listeners("line")) {
             rl.removeListener("line", listener);
         }
-        clearInterval(trade_and_lottery);
-        clearInterval(facility);
-        clearInterval(auto_warp);
+        
+        for (let interval of intervals) {
+            clearInterval(interval);
+        }
+
         setTimeout(initBot, 5000);
     });
 
