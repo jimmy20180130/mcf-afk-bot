@@ -1,5 +1,6 @@
 const { fork } = require('child_process');
 const readline = require('readline')
+const Logger = require('./logger');
 
 let appProcess = undefined;
 
@@ -22,15 +23,15 @@ function startApp() {
     });
 
     appProcess.stderr.on('data', (data) => {
-        console.error(`[ERROR] 發現以下錯誤 ${data} ，正在重新開啟中...`);
+        Logger.error(`發現以下錯誤 ${data} ，正在重新開啟中...`);
     });
 
     appProcess.on('error', (err) => {
-        console.log(`[ERROR] ${err}`)
+        Logger.error(`${err}`)
     })
 
     appProcess.on('close', (code) => {
-        console.log(`[ERROR] 程式回傳錯誤碼 ${code} ，正在重新啟動中...`);
+        Logger.error(`程式回傳錯誤碼 ${code} ，正在重新啟動中...`);
         appProcess = undefined
         startApp();
     });

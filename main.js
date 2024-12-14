@@ -3,6 +3,7 @@ const readline = require("readline");
 const autoeat = require("mineflayer-auto-eat").plugin;
 const fs = require("fs");
 const moment = require('moment-timezone');
+const Logger = require('./logger');
 
 let config = JSON.parse(fs.readFileSync(`${process.cwd()}/config.json`, 'utf8'))
 
@@ -35,9 +36,9 @@ const initBot = () => {
             intervals.push(setInterval(async () => {
                 try {
                     bot.chat(item.text)
-                    console.log(`[INFO] 發送廣告: ${item.text}`)
+                    Logger.log(`發送廣告: ${item.text}`)
                 } catch (e) {
-                    console.log(`[ERROR] 發送廣告時發生錯誤: ${e}`)
+                    Logger.error(`發送廣告時發生錯誤: ${e}`)
                 }
             }, item.interval))
         }
@@ -45,14 +46,12 @@ const initBot = () => {
 
     bot.once("login", () => {
         let botSocket = bot._client.socket;
-        console.log(
-            `[INFO] 已成功登入 ${botSocket.server ? botSocket.server : botSocket._host}`
-        );
+        Logger.log(`已成功登入 ${botSocket.server ? botSocket.server : botSocket._host}`);
     });
 
     bot.once("spawn", () => {
         bot.chat(`[${moment(new Date()).tz('Asia/Taipei').format('HH:mm:ss')}] Jimmy Bot 已上線!`);
-        console.log(`[INFO] 地圖已載入`);
+        Logger.log(`地圖已載入`);
         let config = JSON.parse(fs.readFileSync(`${process.cwd()}/config.json`, 'utf8'))
 
         try {
@@ -60,7 +59,7 @@ const initBot = () => {
                 if (item.text && item.interval) bot.chat(item.text);
             }
         } catch (e) {
-            console.log(`[ERROR] 發送廣告時發生錯誤: ${e}`)
+            Logger.error(`發送廣告時發生錯誤: ${e}`)
         }
 
         setTimeout(() => {
@@ -73,13 +72,13 @@ const initBot = () => {
     });
 
     bot.on("message", (jsonMsg) => {
-        var regex = /Summoned to server(\d+) by CONSOLE/;
+        var regex = /Summoned to server(\d+) by Logger/;
         if (regex.exec(jsonMsg.toString())) {
             bot.chat(config.server);
             bot.chat(config.warp);
         }
 
-        console.log(jsonMsg.toAnsi());
+        Logger.log(jsonMsg.toAnsi());
     });
 
     bot.on("physicsTick", () => {
@@ -92,7 +91,7 @@ const initBot = () => {
     });
 
     bot.on("end", () => {
-        console.log(`機器人已斷線，將於 5 秒後重啟`);
+        Logger.warn(`機器人已斷線，將於 5 秒後重啟`);
         for (listener of rl.listeners("line")) {
             rl.removeListener("line", listener);
         }
@@ -105,32 +104,32 @@ const initBot = () => {
     });
 
     bot.on("kicked", (reason) => {
-        console.log(`機器人被伺服器踢出\n原因：${reason}`);
+        Logger.warn(`機器人被伺服器踢出\n原因：${reason}`);
     });
 
     bot.on("error", (err) => {
         if (err.code === "ECONNREFUSED") {
-            console.log(`連線到 ${err.address}:${err.port} 時失敗`);
+            Logger.error(`連線到 ${err.address}:${err.port} 時失敗`);
         } else {
-            console.log(`發生無法預期的錯誤: ${err}`);
+            Logger.error(`發生無法預期的錯誤: ${err}`);
         }
 
         process.exit(1);
     });
 
     bot.on("autoeat_started", (item, offhand) => {
-        console.log(`正在吃 ${offhand ? "副手中" : "主手中"} 的 ${item.name}`);
+        Logger.log(`正在吃 ${offhand ? "副手中" : "主手中"} 的 ${item.name}`);
     });
 
     bot.on("autoeat_finished", (item, offhand) => {
-        console.log(`已吃完 ${offhand ? "副手中" : "主手中"} 的 ${item.name}`);
+        Logger.log(`已吃完 ${offhand ? "副手中" : "主手中"} 的 ${item.name}`);
     });
 
     bot.on("autoeat_error", (error) => {
         if (error.message == "No food found.") {
-            console.log("找不到食物");
+            Logger.warn("找不到食物");
         } else {
-            console.log(`吃東西時發生錯誤: ${error.message}`);
+            Logger.error(`吃東西時發生錯誤: ${error.message}`);
         }
     });
 
@@ -162,16 +161,16 @@ const initBot = () => {
 initBot();
 
 process.on("unhandledRejection", async (error) => {
-    console.log(error);
+    Logger.error(error);
     process.exit(1);
 });
 
 process.on("uncaughtException", async (error) => {
-    console.log(error);
+    Logger.error(error);
     process.exit(1);
 });
 
 process.on("uncaughtExceptionMonitor", async (error) => {
-    console.log(error);
+    Logger.error(error);
     process.exit(1);
 });
